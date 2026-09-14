@@ -54,6 +54,27 @@ Utility Generali: curl, wget, git, vim, nano, unzip, rsync, logrotate.
 
 Esegue la pulizia della cache dei pacchetti (autoremove / autoclean).
 
+## 🚀 Esecuzione e Installazione
+
+Il metodo raccomandato per gestire il server è clonare il repository ed eseguire lo script orchestratore interattivo **`install.sh`** posizionato nella radice del progetto.
+
+### 1. Clonazione ed Esecuzione dell'Orchestratore (Raccomandato)
+
+```bash
+# 1. Accedi come root
+su -
+
+# 2. Clona il repository
+git clone [https://github.com/mydohome/debstup.git](https://github.com/mydohome/debstup.git)
+cd debstup
+
+# 3. Rendi eseguibile l'orchestratore e avvialo
+chmod +x install.sh
+./install.sh
+L'orchestratore aprirà un menu interattivo da cui potrai:Selezionare ed eseguire un singolo modulo a scelta (00 - 03).Avviare la configurazione completa e sequenziale di tutti i moduli (00 $\rightarrow$ 03).2. Esecuzione Rapida di Singoli Script (Senza Clonazione)Se desideri eseguire un solo modulo direttamente su una macchina pulita senza clonare l'intero repository:Bashsu -
+wget [https://raw.githubusercontent.com/mydohome/debstup/main/scripts/01-docker-setup.sh](https://raw.githubusercontent.com/mydohome/debstup/main/scripts/01-docker-setup.sh) -O 01-docker-setup.sh && chmod +x 01-docker-setup.sh
+./01-docker-setup.sh
+
 🚀 Esecuzione Rapida (Da Root)
 Per lanciare uno script direttamente su una macchina pulita senza clonare il repository:
 
