@@ -1,4 +1,3 @@
-cat << 'EOF' > 01-docker-setup.sh
 #!/bin/bash
 set -euo pipefail
 
@@ -110,5 +109,3 @@ echo " NOTA IMPORTANTE: L'utente $TARGET_USER deve effettuare"
 echo " un nuovo LOGIN (SSH o terminale) per poter usare 'docker'"
 echo " senza sudo."
 echo "=========================================================="
-EOF
-chmod +x 01-docker-setup.sh
