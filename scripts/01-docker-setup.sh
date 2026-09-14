@@ -1,3 +1,4 @@
+cat << 'EOF' > 01-docker-setup.sh
 #!/bin/bash
 set -euo pipefail
 
@@ -66,20 +67,23 @@ systemctl start docker
 
 echo "===> 6. Creazione ambiente di test <==="
 PROJECT_DIR="$TARGET_HOME/docker/web-test"
-sudo -u "$TARGET_USER" mkdir -p "$PROJECT_DIR"
+mkdir -p "$PROJECT_DIR"
 
-sudo -u "$TARGET_USER" bash -c "cat << 'EOF' > '$PROJECT_DIR/docker-compose.yml'
+cat << 'INNEREOF' > "$PROJECT_DIR/docker-compose.yml"
 services:
   web:
     image: nginx:alpine
     container_name: test-webserver
     ports:
-      - \"127.0.0.1:8080:80\"
-EOF"
+      - "127.0.0.1:8080:80"
+INNEREOF
+
+# Assegna la proprietà della cartella e dei file all'utente target
+chown -R "$TARGET_USER:$TARGET_USER" "$TARGET_HOME/docker"
 
 echo "===> 7. Test del Webserver ed eliminazione container <==="
-# Avvio in background tramite l'utente target per verificare i permessi
-sudo -u "$TARGET_USER" docker compose -f "$PROJECT_DIR/docker-compose.yml" up -d
+# Esegue il test temporaneo
+docker compose -f "$PROJECT_DIR/docker-compose.yml" up -d
 
 sleep 2
 if curl -s -f http://127.0.0.1:8080 > /dev/null; then
@@ -88,8 +92,8 @@ else
     echo "[TEST ESITO] ERRORE: Impossibile raggiungere il server web." >&2
 fi
 
-# Spegnimento e pulizia immediata della macchina di test
-sudo -u "$TARGET_USER" docker compose -f "$PROJECT_DIR/docker-compose.yml" down
+# Spegnimento e pulizia
+docker compose -f "$PROJECT_DIR/docker-compose.yml" down
 
 # Rilevamento IP di rete locale (escludendo Docker e Loopback)
 PRIMARY_IP=$(ip -4 addr show scope global | grep -v 'docker' | awk '/inet/ {print $2}' | cut -d/ -f1 | head -n 1)
@@ -102,7 +106,9 @@ echo " Stato sudo: Rimosso/Assente"
 echo " IP Scheda di Rete Principale: ${PRIMARY_IP:-Non rilevato}"
 echo " Cartella compose di test: $PROJECT_DIR"
 echo "=========================================================="
-echo " NOTA: L'utente $TARGET_USER deve disconnettersi e rientrare"
-echo " (oppure eseguire 'newgrp docker') per utilizzare Docker"
-echo " senza privilegi di root."
+echo " NOTA IMPORTANTE: L'utente $TARGET_USER deve effettuare"
+echo " un nuovo LOGIN (SSH o terminale) per poter usare 'docker'"
+echo " senza sudo."
 echo "=========================================================="
+EOF
+chmod +x 01-docker-setup.sh
