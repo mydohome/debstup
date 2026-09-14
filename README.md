@@ -44,6 +44,8 @@ Configura il livello base di protezione per l'accesso remoto:
 - 🛡️ **UFW Firewall**: imposta una politica di default `deny incoming` / `allow outgoing`, aprendo unicamente le porte SSH (22), HTTP (80) e HTTPS (443).
 - 🚨 **Fail2ban**: abilita il monitoraggio dei log di autenticazione SSH (`/var/log/auth.log`) bloccando automaticamente per 1 ora gli IP con 5 tentativi falliti in 10 minuti.
 
+> L'hardening della configurazione SSH stessa (disabilitare login via password, disabilitare il root remoto) **non** è automatizzato: va fatto a mano, vedi la sezione [⚠️ Hardening SSH](#️-importante--hardening-ssh-manuale) più sotto.
+
 ### 03. System Tools (`scripts/03-system-tools.sh`)
 
 Installa una suite completa di utility di amministrazione e diagnostica:
@@ -104,6 +106,65 @@ chmod +x *.sh
 
 # 4. Esegui lo script desiderato (es. 00-network-setup.sh)
 ./00-network-setup.sh
+```
+
+---
+
+## ⚠️ IMPORTANTE — Hardening SSH (manuale)
+
+Disabilitare login via password su SSH **non è automatizzato apposta**: uno script che sbaglia
+qualcosa (chiave non caricata, utente errato, sintassi) può chiuderti fuori dal server senza
+modo di rientrare se non hai una console fisica/IPMI. Vanno eseguiti a mano, con calma, **senza
+mai chiudere la sessione SSH corrente finché non hai verificato che una nuova connessione funzioni.**
+
+1. **Copia la tua chiave pubblica sul server** (dalla tua macchina locale, non sul server):
+
+   ```bash
+   ssh-copy-id utente@IP_SERVER
+   # oppure a mano:
+   cat ~/.ssh/id_ed25519.pub | ssh utente@IP_SERVER 'mkdir -p ~/.ssh && cat >> ~/.ssh/authorized_keys'
+   ```
+
+2. **Apri una seconda connessione SSH di verifica** (lascia aperta anche la prima) e conferma
+   che il login con chiave funzioni *senza* password:
+
+   ```bash
+   ssh utente@IP_SERVER
+   ```
+
+3. **Solo a questo punto**, sul server, fai un backup della configurazione e modifica `sshd_config`:
+
+   ```bash
+   sudo cp /etc/ssh/sshd_config /etc/ssh/sshd_config.bak.$(date +%F_%T)
+   sudo sed -i \
+     -e 's/^#\?PasswordAuthentication.*/PasswordAuthentication no/' \
+     -e 's/^#\?PermitRootLogin.*/PermitRootLogin no/' \
+     -e 's/^#\?ChallengeResponseAuthentication.*/ChallengeResponseAuthentication no/' \
+     /etc/ssh/sshd_config
+   ```
+
+4. **Verifica la sintassi prima di riavviare** (fondamentale: un errore qui non farà partire sshd):
+
+   ```bash
+   sudo sshd -t
+   ```
+
+5. **Riavvia il servizio SSH**:
+
+   ```bash
+   sudo systemctl restart ssh
+   ```
+
+6. **Apri una terza connessione SSH nuova** per confermare che tutto funzioni ancora, prima di
+   chiudere le sessioni aperte ai punti 1–2. Se qualcosa non va, correggi da lì usando la sessione
+   ancora attiva — non chiuderla mai per prima.
+
+Opzionale, solo se sai già cosa comporta (aggiornare anche le regole UFW se cambi porta):
+
+```bash
+sudo sed -i 's/^#\?Port .*/Port 2222/' /etc/ssh/sshd_config
+sudo ufw allow 2222/tcp
+sudo sshd -t && sudo systemctl restart ssh
 ```
 
 ---
